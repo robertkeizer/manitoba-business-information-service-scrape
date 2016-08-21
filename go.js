@@ -4,9 +4,10 @@ var cheerio	= require( 'cheerio' );
 var url		= require( 'url' );
 
 var saveData = function( details, cb ){
-	console.log( "This is saveData; I have details of ");
-	console.log( details );
-	return cb( "asck ');
+	console.log( details.name );
+	//console.log( "This is saveData; I have details of ");
+	//console.log( details );
+	return cb( null );
 };
 
 var getSinglePage = function( _link, cb ){
@@ -36,32 +37,57 @@ var getSinglePage = function( _link, cb ){
 	} ], cb );
 };
 
-async.waterfall( [ function( cb ){
-	request.get( "http://prdp2.ctt.gov.mb.ca/MBIS/MCD.NSF/CLCompany-A?openview", function( err, response, body ){
-		if( err ){ return cb( err ); }
-		return cb( null, cheerio.load( body ) );
-	} );
-}, function( $, cb ){
-	var _links = $("body").find("a").filter( function( i, v ){
-		var _link = $(v);
-		if( _link.attr("href") && _link.attr("href").match( "^\/MBIS\/MCD\.NSF\/.*OpenDocument$" ) ){
-			return true;
+var _offset = 1;
+
+async.whilst( function( ){
+	return true;
+}, function( cb ){
+
+	async.waterfall( [ function( cb ){
+		request.get( "http://prdp2.ctt.gov.mb.ca/MBIS/MCD.NSF/CLCompany-A?openview&Start=" + _offset, function( err, response, body ){
+			if( err ){ return cb( err ); }
+			return cb( null, cheerio.load( body ) );
+		} );
+	}, function( $, cb ){
+		var _links = $("body").find("a").filter( function( i, v ){
+			var _link = $(v);
+			if( _link.attr("href") && _link.attr("href").match( "^\/MBIS\/MCD\.NSF\/.*OpenDocument$" ) ){
+				return true;
+			}
+			return false;
+		} );
+
+		return cb( null, _links.map( function( i, link ){
+			return url.resolve( "http://prdp2.ctt.gov.mb.ca/", $(link).attr("href")  );
+		} ) );
+
+	}, function( _links, cb ){
+		if( _links.length < 1 ){
+			return cb( "DONE" );
 		}
-		return false;
-	} );
-	return cb( null, _links.map( function( i, link ){
-		return url.resolve( "http://prdp2.ctt.gov.mb.ca/", $(link).attr("href")  );
-	} ) );
-}, function( _links, cb ){
-	
-	async.eachLimit( _links, 1, function( _link, cb ){
 
-		getSinglePage( _link, cb );
+		async.eachLimit( _links, 10, function( _link, cb ){
 
-	}, cb );
+			getSinglePage( _link, cb );
 
-}], function(err) {
-	if( err ){ console.error( err ); process.exit(1); }
-	console.log('done');
-	process.exit(0);
-});
+		}, function( err ){
+			if( err) { return cb( err ); }
+			return cb( null, _links.length );
+		} );
+
+	}], function(err, _length ){
+		if( err ){ return cb( err ); }
+
+		// Increment the offset
+		_offset = _offset + _length;
+
+		return cb( null );
+	});
+
+}, function( err ){
+	if( err && err !== "DONE" ){
+		console.error( err );
+		return process.exit(1);
+	}
+	console.log( "Done" );
+} );
