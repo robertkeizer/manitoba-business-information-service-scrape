@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "async": "^2.0.1",
+    "cheerio": "^0.20.0",
     "request": "^2.74.0"
   }
 }
