@@ -2,11 +2,11 @@ var request	= require( 'request' );
 var async	= require( 'async' );
 var cheerio	= require( 'cheerio' );
 var url		= require( 'url' );
+var fs		= require( 'fs' );
 
+var _totalObjs = [ ];
 var saveData = function( details, cb ){
-	console.log( details.name );
-	//console.log( "This is saveData; I have details of ");
-	//console.log( details );
+	_totalObjs.push( details );
 	return cb( null );
 };
 
@@ -89,5 +89,6 @@ async.whilst( function( ){
 		console.error( err );
 		return process.exit(1);
 	}
+	fs.writeFileSync( "output.json", JSON.stringify( _totalObjs ), { "encoding": "utf8" } );
 	console.log( "Done" );
 } );
