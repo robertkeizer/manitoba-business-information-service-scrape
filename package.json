@@ -1,7 +1,7 @@
 {
   "name": "manitoba-business-information-service-scrape",
   "version": "0.0.1",
-  "private": true,
+  "private": false,
   "dependencies": {
     "async": "^2.0.1",
     "cheerio": "^0.20.0",
